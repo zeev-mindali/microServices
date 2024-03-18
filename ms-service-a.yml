@@ -1,0 +1,77 @@
+server:
+  port: '8001'
+spring:
+  cloud:
+    consul:
+      discovery:
+        instanceId: ms-service-a
+        health-check-interval: 5s
+service:
+  b:
+    url: http://ms-service-b/service/b
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+  endpoint:
+    health:
+      enabled: true
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: 'true'
+    tags:
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: health, metrics, prometheus
+      path-mapping:
+        prometheus: metrics,info,health,prometheus
+    
+
+resilience4j:
+  circuitbreaker:
+    instances:
+        aInformation:
+            registerHealthIndicator: true
+            eventConsumerBufferSize: 10
+            failureRateThreshold: 50
+            minimumNumberOfCalls: 5
+            automaticTransitionFromOpenToHalfOpenEnabled: true
+            waitDurationInOpenState: 5s
+            permittedNumberOfCallsInHalfOpenState: 3
+            slidingWindowSize: 10
+            slidingWindowType: COUNT_BASED
+            recordExceptions:
+              - org.springframework.web.client.HttpServerErrorException
+              - java.io.IOException
+              - org.springframework.web.client.ResourceAccessException
+            ignoreExceptions:
+              - com.jb.msservicea.exceptions.CustomException
+  retry:
+    instances:
+      aInformation:
+        registerHealthIndicator: true
+        maxRetryAttempts: 5
+        waitDuration: 10s
+  ratelimiter:
+    instances:
+      aInformation:
+        registerHealthIndicator: false
+        limitForPeriod: 10
+        limitRefresheriod: 10s
+        timeoutDuration: 3s
+  
+
